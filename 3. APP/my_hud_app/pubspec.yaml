@@ -1,0 +1,48 @@
+name: my_hud_app
+description: A new Flutter project.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_bluetooth_serial: ^0.4.0   # ✅ HC-06 블루투스 통신용
+  permission_handler: ^11.0.1        # ✅ 런타임 권한 요청용
+  google_maps_flutter: ^2.5.0 #구글 지도 api
+  http: ^0.13.6     #서버
+  location: ^5.0.3  #위치 api
+  flutter_typeahead: ^4.0.0 #주소 자동 완성
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+      #경고 알림 이미지
+    - assets/car.png
+    - assets/horn.png
+    - assets/siren.png
+    - assets/signal.png
+    - assets/none.png
+
+    - assets/cameras.json #단속 카메라 위치 .json파일
+    
+      #제한 속도 이미지
+    - assets/speed_limit_30.png
+    - assets/speed_limit_40.png
+    - assets/speed_limit_50.png
+    - assets/speed_limit_60.png
+    - assets/speed_limit_70.png
+    - assets/speed_limit_80.png
+    - assets/speed_limit_90.png
+    - assets/speed_limit_100.png
+
+    - assets/speed.png #단속 카메라 위치 이미지
+    
