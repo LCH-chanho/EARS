@@ -24,8 +24,8 @@ import 'package:http/http.dart' as http;
 import 'package:location/location.dart';
 
 // API 키 값들
-const String KAKAO_MOBILITY_KEY = '9623a32ea8eab0b9dd6e1273e2b8787f';
-const String GOOGLE_MAPS_KEY = 'AIzaSyD2SjuehFRtjXEBsK1-ugBvgMU4wrtn7Os';
+const String KAKAO_MOBILITY_KEY = '키 값 입력 필요';
+const String GOOGLE_MAPS_KEY = '키 값 입력 필요';
 
 class HUDSplitNavigationScreen extends StatefulWidget {
   final BluetoothConnection connection;
