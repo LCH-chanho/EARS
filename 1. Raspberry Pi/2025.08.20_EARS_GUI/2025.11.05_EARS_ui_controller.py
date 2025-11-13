@@ -1,4 +1,4 @@
-# 2025.08_20_Hear-O_ui_controller.py (각종 기능 액션을 정의)
+# 2025.11_05_Hear-O_ui_controller.py (각종 기능 액션을 정의)
 # ===== hearo_ui_fixed_800x480_fixed_with_rules_verticals_no_buttons.py =====
 # - BT 전송: Siren/Horn 케이스 유지
 # - Arduino 전송: SIREN/HORN 대문자 유지
@@ -10,6 +10,11 @@
 # - 스플래시가 끝난 "이후"에만 무거운 초기화 시작(모델/오디오/카메라/Tx 등) → HELLO GIF 끊김 완화
 # - 마이크 토글: 클릭 시 마이크 GIF ON + SPEAK 이미지 표시, 다시 클릭 시 OFF + SPEAK 숨김
 #   (STT는 토글 ON에서 1회 수행, 기존 로직 유지)
+
+# README : 기존 라즈베리5에 포함되어있던 "new_py.py" 코드를 가지고 와서 아래 2개의 문제를 해결함
+    # 1) 2회 연속감지 조건이 빠져있어서 초기 class를 None, count =0으로 초기화 후 2회연속감지를 추가 -> 카메라까지 동작했을때 그 밑에서도 똑같이 클래스와 횟수 초기화한 후 동작확인 완료함
+    # 2) STT 버튼이 눌리지 않아서 확인결과 STT_DEVICE    = 'sttmic'로 되어있지않고 옛날 다이소 마이크 이름으로 되어있어서 안됐던 걸 확인함.
+    # 3) Goggle API Key에 숫자가 없는 용준이 Path는 만료일은 없지만 일반고객 무료버전이라 매달 총 사용시간 1시간이 초과되면 자동으로 해당 키는 정지됨 | 뒤에 숫자1이 들어가있는 재경이 path는 2025.11.19 만료됨.
 
 import os, sys, io, wave, time, serial
 from queue import Queue
@@ -54,13 +59,15 @@ WAVE_BOTTOM_Y = WAVE_TOGGLE_RECT[1] + WAVE_TOGGLE_RECT[3]
 MIC_TOP_Y     = 395
 
 # ==== 백엔드 설정 ====
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/yong/stt_project/speech_stt_key.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/yong/stt_project/speech_stt_key1.json"
 CLASS_NAMES = ['Horn', 'None', 'Siren']
-MODEL_PATH = "/home/yong/projects/ears_system/CNN_Model/gamma_cnn_main5_timeframe"
+#MODEL_PATH = "/home/yong/projects/ears_system/CNN_Model/final_model"
+#MODEL_PATH = "/home/yong/projects/ears_system/CNN_Model/gamma_cnn_main5_timeframe"
+MODEL_PATH = "/home/yong/projects/ears_system/CNN_Model/yong_perfect_model"
 CLASS_ID_MAP = { 'INIT': "INIT", 'None': "NONE", 'Siren': "SIREN", 'Horn': "HORN" }  # Arduino 전용 토큰
 
 DETECT_DEVICE = 'voicehat'
-STT_DEVICE    = 'uacdemo'
+STT_DEVICE    = 'sttmic'
 MIC_SAMPLE_RATE   = 48000
 MODEL_SAMPLE_RATE = 44100
 SAMPLE_RATE_STT   = 48000
@@ -351,6 +358,8 @@ class App(QMainWindow):
         self._frozen_detection = False
         self._frozen_class = None
         self._frozen_angle = None
+        self._hit_class = None #**2회연속감지 클래스 None으로 초기화********************
+        self._hit_count = 0 #**2회연속감지 카운트 0으로 초기화********************
 
         # 시작 시 STT 장치 힌트(가벼움)
         if _resolve_device(STT_DEVICE) is None:
@@ -569,7 +578,7 @@ class App(QMainWindow):
                 arduino.write(payload)
                 try: arduino.flush()
                 except: pass
-                print(f"[ARDUINO<=] {payload!r}")
+                #print(f"[ARDUINO<=] {payload!r}") #아두이노 전송 디버깅 출력1
                 return True
         except Exception as e:
             self.statusBar().showMessage(f"아두이노 전송 오류: {e}")
@@ -583,7 +592,7 @@ class App(QMainWindow):
                 bt_serial.write(payload)
                 try: bt_serial.flush()
                 except: pass
-                print(f"[BT<=] {payload!r}")
+                #print(f"[BT<=] {payload!r}") #블루투스 전송 디버깅 출력1
                 return True
         except Exception as e:
             self.statusBar().showMessage(f"BT 전송 오류: {e}")
@@ -691,6 +700,15 @@ class App(QMainWindow):
         thr_map = {'Horn': 0.94, 'Siren': 0.94}
         if pred_class not in thr_map or prob < thr_map[pred_class]:
             return
+        
+        # 연속 2회 이상일 때만 전송 ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** 
+        if self._hit_class == pred_class:
+            self._hit_count += 1
+        else:
+            self._hit_class = pred_class
+            self._hit_count = 1
+        if self._hit_count < 2:
+            return
 
         # === 1) 먼저 전송 (Arduino/BT 각각 형식 분리) ===
         payload_arduino, payload_bt = self._build_payloads(pred_class, angle)
@@ -708,6 +726,8 @@ class App(QMainWindow):
             self._camera_active = True
             self.statusBar().showMessage("카메라 동작(7초)")
             self.camera_request.emit(cam_path, 7000)
+            self._hit_class = None # 카메라화면까지 송출하면 다시 클래스 None으로 바꾸기
+            self._hit_count = 0 # 똑같이 카운트도 0으로 바꾸기
 
         # === 3) GUI 텍스트 즉시 갱신 ===
         try:
